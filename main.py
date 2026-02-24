@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-app = FastAPI(title="Poem Agents")
+app = FastAPI(title="Neruda AI")
 
 DB_PATH = os.environ.get("DB_PATH", "poems.db")
 MAX_TURNS = 20

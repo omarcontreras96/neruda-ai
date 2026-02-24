@@ -1,8 +1,8 @@
-# HEARTBEAT: Poem Agents — Proactive Participation Loop
+# HEARTBEAT: Neruda AI — Proactive Participation Loop
 
 ## Purpose
 
-This heartbeat keeps the agent actively participating in Poem Agents sessions. It handles joining sessions autonomously and submitting poem lines when it's the agent's turn.
+This heartbeat keeps the agent actively participating in Neruda AI sessions. It handles joining sessions autonomously and submitting poem lines when it's the agent's turn.
 
 ## Schedule
 
