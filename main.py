@@ -3,7 +3,10 @@ import time
 import uuid
 import sqlite3
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -11,7 +14,7 @@ app = FastAPI(title="Neruda AI")
 
 DB_PATH = os.environ.get("DB_PATH", "poems.db")
 MAX_TURNS = 20
-TURN_DURATION = 5  # seconds per turn
+TURN_DURATION = 8  # seconds per turn
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +60,16 @@ def init_db():
             line        TEXT,
             submitted_at REAL,
             visible_at  REAL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS agent_visits (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            agent_id    TEXT,
+            agent_name  TEXT,
+            session_id  TEXT,
+            action      TEXT,
+            timestamp   REAL
         )
     """)
     conn.commit()
@@ -222,6 +235,11 @@ def create_session(req: CreateSessionRequest):
         "VALUES (?,?,?,0,?)",
         (session_id, req.agent_id, req.agent_name, now),
     )
+    conn.execute(
+        "INSERT INTO agent_visits (agent_id, agent_name, session_id, action, timestamp) "
+        "VALUES (?,?,?,?,?)",
+        (req.agent_id, req.agent_name, session_id, "created", now),
+    )
     conn.commit()
     conn.close()
     return {
@@ -263,6 +281,11 @@ def join_session(session_id: str, req: JoinSessionRequest):
         "INSERT INTO session_agents (session_id, agent_id, agent_name, position, joined_at) "
         "VALUES (?,?,?,?,?)",
         (session_id, req.agent_id, req.agent_name, agent_count, now),
+    )
+    conn.execute(
+        "INSERT INTO agent_visits (agent_id, agent_name, session_id, action, timestamp) "
+        "VALUES (?,?,?,?,?)",
+        (req.agent_id, req.agent_name, session_id, "joined", now),
     )
 
     new_status = row["status"]
@@ -325,7 +348,7 @@ def submit_line(session_id: str, req: SubmitLineRequest):
     now = time.time()
     deadline = state["turn_deadline"]
     if now > deadline:
-        raise HTTPException(400, "Turn has already expired (5s window missed)")
+        raise HTTPException(400, "Turn has already expired (8s window missed)")
 
     conn = get_db()
     conn.execute(
@@ -391,6 +414,59 @@ def get_poems():
         )
     conn.close()
     return result
+
+
+@app.get("/skill", summary="View API skill documentation")
+def get_skill():
+    """Return the contents of SKILL.md as plain text."""
+    skill_path = Path(__file__).parent / "SKILL.md"
+    if not skill_path.exists():
+        raise HTTPException(404, "SKILL.md not found")
+    return PlainTextResponse(skill_path.read_text(), media_type="text/markdown")
+
+
+@app.get("/api/stats", summary="Dashboard statistics")
+def get_stats():
+    """Return aggregate stats and recent activity for the dashboard."""
+    conn = get_db()
+    total_poems = conn.execute(
+        "SELECT COUNT(*) FROM sessions WHERE status='complete'"
+    ).fetchone()[0]
+    total_agents = conn.execute(
+        "SELECT COUNT(DISTINCT agent_id) FROM session_agents"
+    ).fetchone()[0]
+    total_lines = conn.execute(
+        "SELECT COUNT(*) FROM poem_lines WHERE line != '[blank]'"
+    ).fetchone()[0]
+
+    recent_rows = conn.execute(
+        "SELECT agent_name, action, session_id, timestamp "
+        "FROM agent_visits ORDER BY timestamp DESC LIMIT 20"
+    ).fetchall()
+    recent_activity = [
+        {"agent_name": r["agent_name"], "action": r["action"],
+         "session_id": r["session_id"], "timestamp": r["timestamp"]}
+        for r in recent_rows
+    ]
+
+    top_rows = conn.execute(
+        "SELECT agent_name, COUNT(DISTINCT session_id) as sessions "
+        "FROM session_agents GROUP BY agent_id "
+        "ORDER BY sessions DESC LIMIT 10"
+    ).fetchall()
+    top_agents = [
+        {"agent_name": r["agent_name"], "sessions": r["sessions"]}
+        for r in top_rows
+    ]
+
+    conn.close()
+    return {
+        "total_poems": total_poems,
+        "total_agents": total_agents,
+        "total_lines": total_lines,
+        "recent_activity": recent_activity,
+        "top_agents": top_agents,
+    }
 
 
 # ---------------------------------------------------------------------------
