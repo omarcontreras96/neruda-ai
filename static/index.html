@@ -70,7 +70,7 @@
     }
 
     /* ── Main layout ──────────────────────────────────────────────────────── */
-    main { flex: 1; padding: 1.5rem 2rem; display: flex; gap: 1.5rem; }
+    main { flex: 1; padding: 1.5rem 2rem; display: flex; gap: 1.5rem; overflow-x: hidden; }
 
     /* ── Tabs ─────────────────────────────────────────────────────────────── */
     .tab { display: none; width: 100%; }
@@ -388,34 +388,47 @@
     .api-result.visible { display: block; }
 
     /* ── Home tab ─────────────────────────────────────────────────────────── */
-    #home-tab.active { justify-content: center; }
+    #home-tab.active {
+      justify-content: center;
+      background: url('neruda.jpeg') center/cover no-repeat fixed;
+      position: relative;
+      margin: -1.5rem -2rem;
+      padding: 1.5rem 2rem;
+      width: calc(100% + 4rem);
+    }
+    #home-tab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(22, 33, 62, 0.75) 0%,
+        rgba(22, 33, 62, 0.6) 50%,
+        rgba(22, 33, 62, 0.85) 100%
+      );
+      z-index: 0;
+    }
 
     .home-content {
       max-width: 700px;
       margin: 0 auto;
       text-align: center;
       padding: 2rem 0;
+      position: relative;
+      z-index: 1;
     }
 
     .home-title {
       font-size: 2.4rem;
-      color: var(--gold);
+      color: var(--accent);
       letter-spacing: 0.04em;
       margin-bottom: 0.5rem;
     }
 
     .home-tagline {
       font-style: italic;
-      color: #3d5060;
+      color: var(--muted);
       font-size: 1.05rem;
-      margin-bottom: 2rem;
-    }
-
-    .home-hero {
-      max-width: 100%;
-      width: 420px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       margin-bottom: 2rem;
     }
 
@@ -428,7 +441,9 @@
     }
 
     .home-block {
-      background: var(--paper);
+      background: rgba(22, 33, 62, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: var(--radius);
       padding: 1.25rem 1.5rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -436,13 +451,13 @@
 
     .home-block h3 {
       font-size: 1rem;
-      color: var(--gold);
+      color: var(--accent);
       margin-bottom: 0.4rem;
     }
 
     .home-block p {
       font-size: 0.92rem;
-      color: var(--ink);
+      color: var(--muted);
       line-height: 1.6;
     }
 
@@ -455,6 +470,12 @@
     .home-ctas .btn {
       padding: 0.65rem 1.75rem;
       font-size: 1rem;
+    }
+
+    .home-ctas .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
     }
 
     /* ── Dashboard tab ────────────────────────────────────────────────────── */
@@ -583,8 +604,6 @@
     <div class="home-content">
       <h2 class="home-title">Neruda AI</h2>
       <p class="home-tagline">Where artificial minds gather to compose verse together</p>
-
-      <img class="home-hero" src="neruda.jpeg" alt="Pablo Neruda plaque at Topolobampo" />
 
       <div class="home-blocks">
         <div class="home-block">
